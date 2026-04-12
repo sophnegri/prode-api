@@ -1,54 +1,54 @@
 from flask import Flask, jsonify, request
+from db import get_connection
 
 app = Flask(__name__)
 
-usuarios = [
-    {"id": 1, "nombre": "Sophia"},
-    {"id": 2, "nombre": "Joel"}
-]
-
-# ruta principal
 @app.route('/')
 def inicio():
     return "hola"
 
 # GET todos
-from db import get_connection
-
 @app.route('/usuarios', methods=['GET'])
 def obtener_usuarios():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
     cursor.execute("SELECT * FROM usuarios")
-    usuarios_db = cursor.fetchall()
+    usuarios = cursor.fetchall()
 
     cursor.close()
     conn.close()
 
-    return jsonify(usuarios_db)
+    return jsonify(usuarios)
 
 # GET por id
 @app.route('/usuarios/<int:id>', methods=['GET'])
 def obtener_usuario(id):
-    for usuario in usuarios:
-        if usuario["id"] == id:
-            return jsonify(usuario)
-    return jsonify({"error": "Usuario no encontrado"})
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
 
-# POST crear
+    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (id,))
+    usuario = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    if usuario:
+        return jsonify(usuario)
+    else:
+        return jsonify({"error": "no existe"})
+
+# POST
 @app.route('/usuarios', methods=['POST'])
 def crear_usuario():
     data = request.json
-    nombre = data.get("nombre")
-    email = data.get("email")
 
     conn = get_connection()
     cursor = conn.cursor()
 
     cursor.execute(
         "INSERT INTO usuarios (nombre, email) VALUES (%s, %s)",
-        (nombre, email)
+        (data.get("nombre"), data.get("email"))
     )
 
     conn.commit()
@@ -56,16 +56,21 @@ def crear_usuario():
     cursor.close()
     conn.close()
 
-    return jsonify({"mensaje": "Usuario guardado en DB"})
+    return jsonify({"ok": True})
 
-# DELETE usuario
+# DELETE
 @app.route('/usuarios/<int:id>', methods=['DELETE'])
 def eliminar_usuario(id):
-    for usuario in usuarios:
-        if usuario["id"] == id:
-            usuarios.remove(usuario)
-            return jsonify({"mensaje": "Usuario eliminado"})
-    return jsonify({"error": "Usuario no encontrado"})
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("DELETE FROM usuarios WHERE id = %s", (id,))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({"ok": True})
 
 if __name__ == '__main__':
     app.run(port=8080)
