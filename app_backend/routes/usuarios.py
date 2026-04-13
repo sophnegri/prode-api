@@ -1,14 +1,10 @@
-from flask import Flask, jsonify, request
+from flask import request, jsonify, Blueprint
 from db import get_connection
 
-app = Flask(__name__)
-
-@app.route('/')
-def inicio():
-    return "hola"
+usuarios_bp = Blueprint("usuarios", __name__)
 
 # GET /usuarios (Joel ya lo tenia hecho)
-@app.route('/usuarios', methods=['GET'])
+@usuarios_bp.route('/usuarios', methods=['GET'])
 def obtener_usuarios():
     limit = int(request.args.get('_limit', 10))
     offset = int(request.args.get('_offset', 0))
@@ -33,7 +29,7 @@ def obtener_usuarios():
     }), 200
 
 # GET /usuarios/id
-@app.route('/usuarios/<int:id>', methods=['GET'])
+@usuarios_bp.route('/usuarios/<int:id>', methods=['GET'])
 def obtener_usuario(id):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -50,7 +46,7 @@ def obtener_usuario(id):
         return jsonify({"error": "no existe"}), 404
 
 # POST /usuarios (Joel ya lo tenia hecho)
-@app.route('/usuarios', methods=['POST'])
+@usuarios_bp.route('/usuarios', methods=['POST'])
 def crear_usuario():
     data = request.json
 
@@ -76,7 +72,7 @@ def crear_usuario():
 
 
 # PUT /usuarios/id
-@app.route('/usuarios/<int:id>', methods=['PUT'])
+@usuarios_bp.route('/usuarios/<int:id>', methods=['PUT'])
 def actualizar_usuario(id):
     data = request.json
 
@@ -109,7 +105,7 @@ def actualizar_usuario(id):
     return '', 204
 
 # DELETE /usuarios/id
-@app.route('/usuarios/<int:id>', methods=['DELETE'])
+@usuarios_bp.route('/usuarios/<int:id>', methods=['DELETE'])
 def eliminar_usuario(id):
     conn = get_connection()
     cursor = conn.cursor()
@@ -121,21 +117,3 @@ def eliminar_usuario(id):
     conn.close()
 
     return '', 204
-
-
-if __name__ == '__main__':
-    app.run(port=8080)
-
-#falta de prode
-# GET/partidos
-# POST/partidos
-# GET/partidos/id
-# PUT/partidos/id
-# PATCH/partidos/id
-# DELETE/partidos/id
-
-# PUT/partidos/id/resultado
-
-# POST/partidos/id/prediccion
-
-# GET/ranking
