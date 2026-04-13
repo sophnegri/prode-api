@@ -6,7 +6,7 @@ predicciones_bp = Blueprint("predicciones", __name__)
 # POST/partidos/id/prediccion
 @predicciones_bp.route('/partidos/<int:id>/prediccion', methods=['POST'])
 def crear_prediccion(id):
-    data =request.json
+    data = request.json
     id_usuario = data.get("id_usuario")
     local_goles = data.get("local")
     visitante_goles = data.get("visitante")
@@ -16,6 +16,9 @@ def crear_prediccion(id):
 
     if not id_usuario or local_goles is None or visitante_goles is None:
         return jsonify({"error": "faltan datos"}), 400
+    
+    if local_goles < 0 or visitante_goles < 0:
+        return jsonify({"error": "Los goles no pueden ser negativos"}), 400
 
     cursor.execute("SELECT * FROM partidos WHERE id = %s", (id,))
     partido = cursor.fetchone()
