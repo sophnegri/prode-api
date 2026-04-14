@@ -54,6 +54,9 @@ def obtener_usuario(id):
 def crear_usuario():
     data = request.json
 
+    if not data:
+        return jsonify({"error": "no hay body"}), 400
+
     if not data.get("nombre") or not data.get("email"):
         return jsonify({"error": "faltan datos"}), 400
 
@@ -73,7 +76,6 @@ def crear_usuario():
     conn.close()
 
     return jsonify({"ok": True}), 201
-
 
 # PUT /usuarios/id
 @app.route('/usuarios/<int:id>', methods=['PUT'])
