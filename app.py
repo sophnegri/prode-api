@@ -28,7 +28,7 @@ def obtener_usuarios():
     return jsonify({
         "usuarios": usuarios,
         "_links": {
-            "_self": {"href": f"/usuarios?_limit={limit}&_offset={offset}"}
+            "_self": {"href": f"/usuarios?limit={limit}&offset={offset}"}
         }
     }), 200
 
@@ -126,9 +126,48 @@ def eliminar_usuario(id):
 if __name__ == '__main__':
     app.run(port=8080)
 
-#falta de prode
 # GET/partidos
+@app.route('/partidos', methods=['GET'])
+def obtener_partidos():
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("SELECT * FROM partidos")
+    partidos = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({"partidos": partidos}), 200
+
 # POST/partidos
+@app.route('/partidos', methods=['POST'])
+def crear_partido():
+    data = request.json
+
+    if not data.get("equipo_local") or not data.get("equipo_visitante"):
+        return jsonify({"error": "faltan datos"}), 400
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "INSERT INTO partidos (equipo_local, equipo_visitante, fecha, fase) VALUES (%s, %s, %s, %s)",
+        (
+            data.get("equipo_local"),
+            data.get("equipo_visitante"),
+            data.get("fecha"),
+            data.get("fase")
+        )
+    )
+
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({"ok": True}), 201
+
 # GET/partidos/id
 # PUT/partidos/id
 # PATCH/partidos/id
