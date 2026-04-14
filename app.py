@@ -10,8 +10,8 @@ def inicio():
 # GET /usuarios (Joel ya lo tenia hecho)
 @app.route('/usuarios', methods=['GET'])
 def obtener_usuarios():
-    limit = int(request.args.get('_limit', 10))
-    offset = int(request.args.get('_offset', 0))
+    limit = int(request.args.get('limit', 10))
+    offset = int(request.args.get('offset', 0))
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
