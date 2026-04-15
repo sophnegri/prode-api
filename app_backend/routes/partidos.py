@@ -10,4 +10,3 @@ partidos_bp = Blueprint("partidos", __name__)
 # DELETE/partidos/id
 
 # PUT/partidos/id/resultado
-
