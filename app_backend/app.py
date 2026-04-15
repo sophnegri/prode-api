@@ -5,8 +5,11 @@ from app_backend.routes.usuarios import usuarios_bp
 app = Flask(__name__)
 
 app.register_blueprint(inicio_bp, url_prefix="/inicio")
+app.register_blueprint(usuarios_bp, url_prefix="/partidos")
+app.register_blueprint(usuarios_bp, url_prefix="/predicciones")
+app.register_blueprint(usuarios_bp, url_prefix="/ranking")
+app.register_blueprint(usuarios_bp, url_prefix="/resultados")
 app.register_blueprint(usuarios_bp, url_prefix="/usuarios")
-
 
 # se encarga de correr la app
 if __name__ == "__main__":
