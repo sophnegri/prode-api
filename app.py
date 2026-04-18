@@ -146,17 +146,29 @@ def eliminar_usuario(id):
 # GET/partidos
 @app.route('/partidos', methods=['GET'])
 def obtener_partidos():
+    try:
+        limit = int(request.args.get('_limit', 10))
+        offset = int(request.args.get('_offset', 0))
+    except:
+        return error_response(400, "bad request", "Parámetros inválidos")
+
+    equipo = request.args.get('equipo')
+
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    try:
-        cursor.execute("SELECT * FROM partidos")
-        partidos = cursor.fetchall()
+    if equipo:
+        cursor.execute(
+            "SELECT * FROM partidos WHERE equipo_local = %s OR equipo_visitante = %s LIMIT %s OFFSET %s",
+            (equipo, equipo, limit, offset)
+        )
+    else:
+        cursor.execute(
+            "SELECT * FROM partidos LIMIT %s OFFSET %s",
+            (limit, offset)
+        )
 
-    except:
-        cursor.close()
-        conn.close()
-        return error_response(500, "internal error", "Error al obtener partidos")
+    partidos = cursor.fetchall()
 
     cursor.close()
     conn.close()
