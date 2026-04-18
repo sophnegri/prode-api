@@ -1,3 +1,4 @@
+import mysql.connector
 from flask import request, jsonify, Blueprint
 from db import get_connection
 
@@ -5,7 +6,7 @@ usuarios_bp = Blueprint("usuarios", __name__)
 
 
 # POST /usuarios (VERSION JOEL)
-@usuarios_bp.route("/usuarios", methods=["POST"])
+@usuarios_bp.route("/", methods=["POST"])
 def crear_usuario():
     datos_igresados = request.get_json()
     nombre_usuario = datos_igresados.get("nombre")
@@ -85,7 +86,7 @@ def crear_usuario():
 
 
 # GET /usuarios (VERSION JOEL)
-@usuarios_bp.route("/usuarios", methods=["GET"])
+@usuarios_bp.route("/", methods=["GET"])
 def listar_usuarios():
     limit = request.args.get("_limit", default=10, type=int)
     offset = request.args.get("_offset", default=0, type=int)
@@ -150,7 +151,7 @@ def listar_usuarios():
 
 
 # GET /usuarios/id
-@usuarios_bp.route("/usuarios/<int:id>", methods=["GET"])
+@usuarios_bp.route("/<int:id>", methods=["GET"])
 def obtener_usuario(id):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -168,7 +169,7 @@ def obtener_usuario(id):
 
 
 # PUT /usuarios/id
-@usuarios_bp.route("/usuarios/<int:id>", methods=["PUT"])
+@usuarios_bp.route("/<int:id>", methods=["PUT"])
 def actualizar_usuario(id):
     data = request.json
 
@@ -202,7 +203,7 @@ def actualizar_usuario(id):
 
 
 # DELETE /usuarios/id
-@usuarios_bp.route("/usuarios/<int:id>", methods=["DELETE"])
+@usuarios_bp.route("/<int:id>", methods=["DELETE"])
 def eliminar_usuario(id):
     conn = get_connection()
     cursor = conn.cursor()

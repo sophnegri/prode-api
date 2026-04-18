@@ -1,5 +1,6 @@
--- 1. Usuarios
-CREATE TABLE usuarios (
+CREATE DATABASE IF NOT EXISTS prode_db;
+USE prode_db
+CREATE TABLE IF NOT EXISTS usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
@@ -7,7 +8,7 @@ CREATE TABLE usuarios (
 );
 
 -- 2. Partidos
-CREATE TABLE partidos (
+CREATE TABLE IF NOT EXISTS partidos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     equipo_local VARCHAR(100) NOT NULL,
     equipo_visitante VARCHAR(100) NOT NULL,
@@ -18,7 +19,7 @@ CREATE TABLE partidos (
 );
 
 -- 3. Resultados
-CREATE TABLE resultados (
+CREATE TABLE IF NOT EXISTS resultados (
     id INT AUTO_INCREMENT PRIMARY KEY,
     partido_id INT NOT NULL,
     goles_local INT NOT NULL,
@@ -27,7 +28,7 @@ CREATE TABLE resultados (
 );
 
 -- 4. Predicciones
-CREATE TABLE predicciones (
+CREATE TABLE IF NOT EXISTS predicciones (
     id INT AUTO_INCREMENT PRIMARY KEY,
     usuario_id INT NOT NULL,
     partido_id INT NOT NULL,
