@@ -21,8 +21,11 @@ def inicio():
 # GET /usuarios
 @app.route('/usuarios', methods=['GET'])
 def obtener_usuarios():
-    limit = int(request.args.get('_limit', 10))
-    offset = int(request.args.get('_offset', 0))
+    try:
+        limit = int(request.args.get('_limit', 10))
+        offset = int(request.args.get('_offset', 0))
+    except:
+        return error_response(400, "bad request", "Parámetros inválidos")
 
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -75,14 +78,16 @@ def crear_usuario():
             (data.get("nombre"), data.get("email"))
         )
         conn.commit()
-        
+
     except:
+        cursor.close()
+        conn.close()
         return error_response(409, "conflict", "Usuario duplicado")
 
     cursor.close()
     conn.close()
 
-    return '', 201
+    return jsonify({"ok": True}), 201
 
 # PUT /usuarios/id
 @app.route('/usuarios/<int:id>', methods=['PUT'])
@@ -126,6 +131,8 @@ def eliminar_usuario(id):
     usuario = cursor.fetchone()
 
     if not usuario:
+        cursor.close()
+        conn.close()
         return error_response(404, "not found", "Usuario inexistente")
 
     cursor.execute("DELETE FROM usuarios WHERE id = %s", (id,))
@@ -142,8 +149,14 @@ def obtener_partidos():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT * FROM partidos")
-    partidos = cursor.fetchall()
+    try:
+        cursor.execute("SELECT * FROM partidos")
+        partidos = cursor.fetchall()
+
+    except:
+        cursor.close()
+        conn.close()
+        return error_response(500, "internal error", "Error al obtener partidos")
 
     cursor.close()
     conn.close()
@@ -154,7 +167,6 @@ def obtener_partidos():
     return jsonify({"partidos": partidos}), 200
 
 
-# POST/partidos
 @app.route('/partidos', methods=['POST'])
 def crear_partido():
     data = request.json
@@ -165,17 +177,22 @@ def crear_partido():
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute(
-        "INSERT INTO partidos (equipo_local, equipo_visitante, fecha, fase) VALUES (%s, %s, %s, %s)",
-        (
-            data.get("equipo_local"),
-            data.get("equipo_visitante"),
-            data.get("fecha"),
-            data.get("fase")
+    try:
+        cursor.execute(
+            "INSERT INTO partidos (equipo_local, equipo_visitante, fecha, fase) VALUES (%s, %s, %s, %s)",
+            (
+                data.get("equipo_local"),
+                data.get("equipo_visitante"),
+                data.get("fecha"),
+                data.get("fase")
+            )
         )
-    )
+        conn.commit()
 
-    conn.commit()
+    except:
+        cursor.close()
+        conn.close()
+        return error_response(409, "conflict", "Error al crear partido")
 
     cursor.close()
     conn.close()
