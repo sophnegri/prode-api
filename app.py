@@ -122,19 +122,17 @@ def actualizar_usuario(id):
     cursor.execute("SELECT * FROM usuarios WHERE id = %s", (id,))
     usuario = cursor.fetchone()
 
-    if usuario:
-        cursor.execute(
-            "UPDATE usuarios SET nombre = %s, email = %s WHERE id = %s",
-            (data.get("nombre"), data.get("email"), id)
-        )
-    else:
-        cursor.execute(
-            "INSERT INTO usuarios (id, nombre, email) VALUES (%s, %s, %s)",
-            (id, data.get("nombre"), data.get("email"))
-        )
+    if not usuario:
+        cursor.close()
+        conn.close()
+        return error_response(404, "not found", "Usuario inexistente")
+
+    cursor.execute(
+        "UPDATE usuarios SET nombre = %s, email = %s WHERE id = %s",
+        (data.get("nombre"), data.get("email"), id)
+    )
 
     conn.commit()
-
     cursor.close()
     conn.close()
 
