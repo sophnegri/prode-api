@@ -407,7 +407,124 @@ def actualizar_resultado(id):
 
 # POST/partidos/id/prediccion
 
+@app.route('/partidos/<int:id>/prediccion', methods=['POST'])
+def crear_prediccion(id):
+    data = request.json
+
+    usuario_id = data.get("usuario_id")
+    goles_local = data.get("goles_local")
+    goles_visitante = data.get("goles_visitante")
+
+    if not usuario_id or goles_local is None or goles_visitante is None:
+        return error_response(400, "bad request", "Faltan datos")
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Validar partido
+    cursor.execute("SELECT * FROM partidos WHERE id = %s", (id,))
+    partido = cursor.fetchone()
+
+    if not partido:
+        cursor.close()
+        conn.close()
+        return error_response(404, "not found", "Partido inexistente")
+
+    # Validar que no tenga resultado
+    if partido["goles_local"] is not None:
+        cursor.close()
+        conn.close()
+        return error_response(400, "bad request", "El partido ya tiene resultado")
+
+    # Validar usuario
+    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (usuario_id,))
+    usuario = cursor.fetchone()
+
+    if not usuario:
+        cursor.close()
+        conn.close()
+        return error_response(404, "not found", "Usuario inexistente")
+
+    # Validar duplicado
+    cursor.execute(
+        "SELECT * FROM predicciones WHERE usuario_id = %s AND partido_id = %s",
+        (usuario_id, id)
+    )
+    existe = cursor.fetchone()
+
+    if existe:
+        cursor.close()
+        conn.close()
+        return error_response(409, "conflict", "Predicción duplicada")
+
+    cursor.execute(
+        "INSERT INTO predicciones (usuario_id, partido_id, goles_local, goles_visitante) VALUES (%s, %s, %s, %s)",
+        (usuario_id, id, goles_local, goles_visitante)
+    )
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return jsonify({"ok": True}), 201
+
 # GET/ranking
+
+@app.route('/ranking', methods=['GET'])
+def obtener_ranking():
+    limit = int(request.args.get('_limit', 10))
+    offset = int(request.args.get('_offset', 0))
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    cursor.execute("""
+        SELECT p.usuario_id, p.goles_local, p.goles_visitante,
+               pa.goles_local AS real_local, pa.goles_visitante AS real_visitante
+        FROM predicciones p
+        JOIN partidos pa ON p.partido_id = pa.id
+        WHERE pa.goles_local IS NOT NULL
+    """)
+
+    datos = cursor.fetchall()
+
+    puntos = {}
+
+    for d in datos:
+        pred_local = d["goles_local"]
+        pred_visit = d["goles_visitante"]
+        real_local = d["real_local"]
+        real_visit = d["real_visitante"]
+
+        # exacto
+        if pred_local == real_local and pred_visit == real_visit:
+            pts = 3
+        else:
+            pred_diff = pred_local - pred_visit
+            real_diff = real_local - real_visit
+
+            if (pred_diff > 0 and real_diff > 0) or \
+               (pred_diff < 0 and real_diff < 0) or \
+               (pred_diff == 0 and real_diff == 0):
+                pts = 1
+            else:
+                pts = 0
+
+        puntos[d["usuario_id"]] = puntos.get(d["usuario_id"], 0) + pts
+
+    ranking = [{"usuario_id": k, "puntos": v} for k, v in puntos.items()]
+    ranking.sort(key=lambda x: x["puntos"], reverse=True)
+
+    total = len(ranking)
+    data = ranking[offset:offset + limit]
+
+    cursor.close()
+    conn.close()
+
+    return jsonify({
+        "total": total,
+        "data": data
+    }), 200
 
 #MAIN
 if __name__ == '__main__':
