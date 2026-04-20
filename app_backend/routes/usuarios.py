@@ -156,7 +156,7 @@ def obtener_usuario(id):
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (id,))
+    cursor.execute("SELECT id, nombre, email FROM usuarios WHERE id = %s", (id,))
     usuario = cursor.fetchone()
 
     cursor.close()

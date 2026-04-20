@@ -5,7 +5,7 @@ from db import get_connection
 resultados_bp = Blueprint("resultados", __name__)
 
 
-@resultados_bp.route("/partidos/<int:id_partido>/resultado", methods=["PUT"])
+@resultados_bp.route("/<int:id_partido>/resultado", methods=["PUT"])
 def put_resultado(id_partido):
     datos_resultado = request.json
     goles_local = datos_resultado.get("goles_local")

@@ -8,4 +8,4 @@ def inicio():
     return {
         "status": "ok",
         "message": "API levantada",
-    }  # acá cambié el mensaje, antes decia hola
+    }
