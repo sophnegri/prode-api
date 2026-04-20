@@ -14,8 +14,8 @@ CREATE TABLE IF NOT EXISTS partidos (
     equipo_visitante VARCHAR(100) NOT NULL,
     estadio VARCHAR(100),
     ciudad VARCHAR(100),
-    fecha DATE,
-    fase VARCHAR(50)
+    fecha DATE NOT NULL,
+    fase ENUM('grupos', 'dieciseisavos', 'octavos', 'cuartos', 'semis', 'final') NOT NULL
 );
 
 -- 3. Resultados
