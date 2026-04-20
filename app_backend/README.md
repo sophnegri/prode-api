@@ -1,4 +1,4 @@
-Ejemplos de partidos para iniciar en la base de datos: 
+Ejemplos de partidos para iniciar en la base de datos:
 [
   {
     "equipo_local": "México",
