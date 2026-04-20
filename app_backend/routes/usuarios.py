@@ -148,86 +148,131 @@ def listar_usuarios():
             500,
         )
 
-
-# GET /usuarios/id (Sophia)
-@usuarios_bp.route('/<int:id>', methods=['GET'])
+# GET /usuarios/{id}
+@usuarios_bp.route("/<int:id>", methods=["GET"])
 def obtener_usuario(id):
+    if id <= 0:
+        return jsonify({
+            "errors": [{
+                "code": "USR-400",
+                "message": "ID inválido",
+                "level": "error",
+                "description": "El ID debe ser mayor a 0"
+            }]
+        }), 400
+
     try:
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT id, nombre, email FROM usuarios WHERE id = %s", (id,))
+
+        cursor.execute(
+            "SELECT id, nombre, email FROM usuarios WHERE id = %s",
+            (id,)
+        )
+
         usuario = cursor.fetchone()
+
         cursor.close()
         conn.close()
 
-        if usuario:
-            return jsonify(usuario), 200
+        if not usuario:
+            return jsonify({
+                "errors": [{
+                    "code": "USR-404",
+                    "message": "No encontrado",
+                    "level": "error",
+                    "description": f"El usuario {id} no existe"
+                }]
+            }), 404
 
-        return jsonify({
-            "errors": [{
-                "code": "USR-404",
-                "message": "Usuario no encontrado",
-                "level": "error",
-                "description": f"El usuario con ID {id} no existe"
-            }]
-        }), 404
+        return jsonify(usuario), 200
 
-    except Exception:
+    except mysql.connector.Error:
         return jsonify({
             "errors": [{
                 "code": "SYS-500",
-                "message": "Error de servidor",
+                "message": "Error de base de datos",
                 "level": "error",
-                "description": "No se pudo conectar a la Base de datos"
+                "description": "No se pudo conectar"
             }]
         }), 500
 
-# PUT /usuarios/id (joel)
-@usuarios_bp.route('/<int:id>', methods=['PUT'])
-def reemplazar_usuario(id):
-    nombre_nuevo = request.get_json().get('nombre')
-    email_nuevo = request.get_json().get('email')
 
-    if not nombre_nuevo or not email_nuevo:
+# PUT /usuarios/{id}
+@usuarios_bp.route("/<int:id>", methods=["PUT"])
+def reemplazar_usuario(id):
+    if id <= 0:
         return jsonify({
-              "errors": [
-                {
-                  "code": "USR-400",
-                  "message": "Datos incompletos",
-                  "level": "error",
-                  "description": "Asegurese de ingresar Nombre y Email"
-                }
-              ]
-            }), 400
+            "errors": [{
+                "code": "USR-400",
+                "message": "ID inválido",
+                "level": "error",
+                "description": "El ID debe ser mayor a 0"
+            }]
+        }), 400
+
+    datos = request.get_json()
+
+    if not datos:
+        return jsonify({
+            "errors": [{
+                "code": "USR-400",
+                "message": "Body inválido",
+                "level": "error",
+                "description": "Se debe enviar un JSON válido"
+            }]
+        }), 400
+
+    nombre = datos.get("nombre")
+    email = datos.get("email")
+
+    if not nombre or not email:
+        return jsonify({
+            "errors": [{
+                "code": "USR-400",
+                "message": "Datos incompletos",
+                "level": "error",
+                "description": "Nombre y email son obligatorios"
+            }]
+        }), 400
+
     try:
         conn = get_connection()
-        cursor = conn.cursor(dictionary = True)
+        cursor = conn.cursor(dictionary=True)
 
-        query = "SELECT * FROM usuarios WHERE id = %s "
-        cursor.execute(query, (id,))
-        usuario_buscado = cursor.fetchone()
+        cursor.execute("SELECT * FROM usuarios WHERE id = %s", (id,))
+        usuario = cursor.fetchone()
 
-        if not usuario_buscado:
-            return '', 404
+        if not usuario:
+            cursor.execute(
+                "INSERT INTO usuarios (id, nombre, email) VALUES (%s, %s, %s)",
+                (id, nombre, email)
+            )
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return "", 204
 
-        if usuario_buscado['nombre'] == nombre_nuevo and usuario_buscado['email'] == email_nuevo:
+        if usuario["nombre"] == nombre and usuario["email"] == email:
             return jsonify({
-                  "errors": [{
-                      "code": "USR-409",
-                      "message": "No hay cambios en los datos anteriores",
-                      "level": "error",
-                      "description": "Ingrese datos diferentes a los anteriores"
-                    }]
-                }),409
+                "errors": [{
+                    "code": "USR-409",
+                    "message": "Sin cambios",
+                    "level": "error",
+                    "description": "Los datos son iguales a los actuales"
+                }]
+            }), 409
 
-        query = "UPDATE usuarios SET nombre = %s, email = %s WHERE id = %s"
-        cursor.execute(query, (nombre_nuevo, email_nuevo, id))
+        cursor.execute(
+            "UPDATE usuarios SET nombre = %s, email = %s WHERE id = %s",
+            (nombre, email, id)
+        )
 
         conn.commit()
         cursor.close()
         conn.close()
 
-        return '', 204
+        return "", 204
 
     except mysql.connector.Error as err:
         if err.errno == 1062:
@@ -236,26 +281,37 @@ def reemplazar_usuario(id):
                     "code": "USR-409",
                     "message": "Email duplicado",
                     "level": "error",
-                    "description": "El email ingresado ya está en uso por otro usuario."
+                    "description": "El email ya está en uso"
                 }]
             }), 409
 
         return jsonify({
-              "errors": [{
-                  "code": "SYS-500",
-                  "message": "Error de conexion",
-                  "level": "error",
-                  "description": "No se pudo conectar a la Base de datos"
-                }]
-            }), 500
+            "errors": [{
+                "code": "SYS-500",
+                "message": "Error de base de datos",
+                "level": "error",
+                "description": "Error interno"
+            }]
+        }), 500
 
 
-# DELETE /usuarios/id (Sophia)
-@usuarios_bp.route('/<int:id>', methods=['DELETE'])
+# DELETE /usuarios/{id}
+@usuarios_bp.route("/<int:id>", methods=["DELETE"])
 def eliminar_usuario(id):
+    if id <= 0:
+        return jsonify({
+            "errors": [{
+                "code": "USR-400",
+                "message": "ID inválido",
+                "level": "error",
+                "description": "El ID debe ser mayor a 0"
+            }]
+        }), 400
+
     try:
         conn = get_connection()
         cursor = conn.cursor()
+
         cursor.execute("DELETE FROM usuarios WHERE id = %s", (id,))
         conn.commit()
 
@@ -265,20 +321,21 @@ def eliminar_usuario(id):
                     "code": "USR-404",
                     "message": "No encontrado",
                     "level": "error",
-                    "description": "No se encontró el usuario para eliminar"
+                    "description": "El usuario no existe"
                 }]
             }), 404
 
         cursor.close()
         conn.close()
-        return '', 204
 
-    except:
+        return "", 204
+
+    except mysql.connector.Error:
         return jsonify({
             "errors": [{
                 "code": "SYS-500",
-                "message": "Error de conexion",
+                "message": "Error de base de datos",
                 "level": "error",
-                "description": "No se pudo conectar a la Base de datos"
+                "description": "No se pudo conectar"
             }]
         }), 500
