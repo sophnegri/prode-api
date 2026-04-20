@@ -63,7 +63,7 @@ def obtener_ranking():
         cursor.close()
         conn.close()
 
-        return jsonify({"total": total, "data": data}), 200
+        return jsonify({"ranking": data}), 200
 
     except mysql.connector.Error as err:
         return jsonify({"errors": [f"Error de base de datos: {err}"]}), 500
