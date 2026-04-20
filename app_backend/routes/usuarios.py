@@ -4,7 +4,6 @@ from db import get_connection
 
 usuarios_bp = Blueprint("usuarios", __name__)
 
-
 # POST /usuarios (VERSION JOEL)
 @usuarios_bp.route("/", methods=["POST"])
 def crear_usuario():
@@ -150,68 +149,113 @@ def listar_usuarios():
         )
 
 
-# GET /usuarios/id
-@usuarios_bp.route("/<int:id>", methods=["GET"])
+# GET /usuarios/id (Sophia)
+@usuarios_bp.route('/<int:id>', methods=['GET'])
 def obtener_usuario(id):
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id, nombre, email FROM usuarios WHERE id = %s", (id,))
+        usuario = cursor.fetchone()
+        cursor.close()
+        conn.close()
 
-    cursor.execute("SELECT id, nombre, email FROM usuarios WHERE id = %s", (id,))
-    usuario = cursor.fetchone()
+        if usuario:
+            return jsonify(usuario), 200
 
-    cursor.close()
-    conn.close()
+        return jsonify({
+            "errors": [{
+                "code": "USR-404",
+                "message": "Usuario no encontrado",
+                "level": "error",
+                "description": f"El usuario con ID {id} no existe"
+            }]
+        }), 404
 
-    if usuario:
-        return jsonify(usuario), 200
-    else:
-        return jsonify({"error": "no existe"}), 404
+    except Exception:
+        return jsonify({
+            "errors": [{
+                "code": "SYS-500",
+                "message": "Error de servidor",
+                "level": "error",
+                "description": "No se pudo conectar a la Base de datos"
+            }]
+        }), 500
 
-
-# PUT /usuarios/id
-@usuarios_bp.route("/<int:id>", methods=["PUT"])
+# PUT /usuarios/id (Sophia)
+@usuarios_bp.route('/<int:id>', methods=['PUT'])
 def actualizar_usuario(id):
-    data = request.json
+    data = request.get_json()
+    nombre = data.get("nombre")
+    email = data.get("email")
 
-    if not data.get("nombre") or not data.get("email"):
-        return jsonify({"error": "faltan datos"}), 400
+    if not nombre or not email:
+        return jsonify({
+            "errors": [{
+                "code": "REQ-400",
+                "message": "Faltan datos",
+                "level": "error",
+                "description": "Se deben ingresar los siguientes datos: Nombre y Mail"
+            }]
+        }), 400
 
-    conn = get_connection()
-    cursor = conn.cursor()
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id FROM usuarios WHERE id = %s", (id,))
+        existe = cursor.fetchone()
 
-    # Verificar si existe
-    cursor.execute("SELECT * FROM usuarios WHERE id = %s", (id,))
-    usuario = cursor.fetchone()
+        if existe:
+            cursor.execute("UPDATE usuarios SET nombre = %s, email = %s WHERE id = %s", (nombre, email, id))
+        else:
+            cursor.execute("INSERT INTO usuarios (id, nombre, email) VALUES (%s, %s, %s)", (id, nombre, email))
 
-    if usuario:
-        cursor.execute(
-            "UPDATE usuarios SET nombre = %s, email = %s WHERE id = %s",
-            (data.get("nombre"), data.get("email"), id),
-        )
-    else:
-        cursor.execute(
-            "INSERT INTO usuarios (id, nombre, email) VALUES (%s, %s, %s)",
-            (id, data.get("nombre"), data.get("email")),
-        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return '', 204
 
-    conn.commit()
+    except Exception:
+        return jsonify({
+            "errors": [{
+                "code": "SYS-500",
+                "message": "Error de conexion",
+                "level": "error",
+                "description": "No se pudo conectar a la Base de datos"
+            }]
+        }), 500
 
-    cursor.close()
-    conn.close()
-
-    return "", 204
-
-
-# DELETE /usuarios/id
-@usuarios_bp.route("/<int:id>", methods=["DELETE"])
+# DELETE /usuarios/id (Sophia)
+@usuarios_bp.route('/<int:id>', methods=['DELETE'])
 def eliminar_usuario(id):
-    conn = get_connection()
-    cursor = conn.cursor()
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM usuarios WHERE id = %s", (id,))
+        conn.commit()
 
-    cursor.execute("DELETE FROM usuarios WHERE id = %s", (id,))
-    conn.commit()
+        if cursor.rowcount == 0:
+            cursor.close()
+            conn.close()
+            return jsonify({
+                "errors": [{
+                    "code": "USR-404",
+                    "message": "No encontrado",
+                    "level": "error",
+                    "description": "No se encontró el usuario para eliminar"
+                }]
+            }), 404
 
-    cursor.close()
-    conn.close()
+        cursor.close()
+        conn.close()
+        return '', 204
 
-    return "", 204
+    except Exception:
+        return jsonify({
+            "errors": [{
+                "code": "SYS-500",
+                "message": "Error de conexion",
+                "level": "error",
+                "description": "No se pudo conectar a la Base de datos"
+            }]
+        }), 500
