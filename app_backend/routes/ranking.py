@@ -6,7 +6,7 @@ ranking_bp = Blueprint("ranking", __name__)
 
 
 # GET /ranking
-@ranking_bp.route("/ranking", methods=["GET"])
+@ranking_bp.route("/", methods=["GET"])
 def obtener_ranking():
     limit = int(request.args.get("_limit", 10))
     offset = int(request.args.get("_offset", 0))
@@ -57,7 +57,7 @@ def obtener_ranking():
         ranking = [{"usuario_id": k, "puntos": v} for k, v in puntos.items()]
         ranking.sort(key=lambda x: x["puntos"], reverse=True)
 
-        total = len(ranking)
+        
         data = ranking[offset : offset + limit]
 
         cursor.close()
