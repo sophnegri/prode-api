@@ -117,22 +117,42 @@ def actualizar_usuario(id):
         return error_response(400, "bad request", "Faltan datos")
 
     conn = get_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(dictionary=True)
 
+    # Verificar si existe usuario
     cursor.execute("SELECT * FROM usuarios WHERE id = %s", (id,))
     usuario = cursor.fetchone()
 
-    if not usuario:
+    # Verificar duplicado de email en otro usuario
+    cursor.execute("SELECT * FROM usuarios WHERE email = %s AND id != %s", (data["email"], id))
+    duplicado = cursor.fetchone()
+
+    if duplicado:
         cursor.close()
         conn.close()
-        return error_response(404, "not found", "Usuario inexistente")
+        return error_response(409, "conflict", "Email duplicado")
 
-    cursor.execute(
-        "UPDATE usuarios SET nombre = %s, email = %s WHERE id = %s",
-        (data.get("nombre"), data.get("email"), id)
-    )
+    try:
+        if usuario:
+            # UPDATE
+            cursor.execute(
+                "UPDATE usuarios SET nombre=%s, email=%s WHERE id=%s",
+                (data["nombre"], data["email"], id)
+            )
+        else:
+            # INSERT (upsert)
+            cursor.execute(
+                "INSERT INTO usuarios (id, nombre, email) VALUES (%s, %s, %s)",
+                (id, data["nombre"], data["email"])
+            )
 
-    conn.commit()
+        conn.commit()
+
+    except:
+        cursor.close()
+        conn.close()
+        return error_response(500, "internal error", "Error al guardar usuario")
+
     cursor.close()
     conn.close()
 
@@ -287,6 +307,33 @@ def obtener_partido(id):
 
     return jsonify(partido), 200
 
+# DELETE /partidos/id
+@app.route('/partidos/<int:id>', methods=['DELETE'])
+def eliminar_partido(id):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM partidos WHERE id = %s", (id,))
+    partido = cursor.fetchone()
+
+    if not partido:
+        cursor.close()
+        conn.close()
+        return error_response(404, "not found", "Partido inexistente")
+
+    try:
+        cursor.execute("DELETE FROM partidos WHERE id = %s", (id,))
+        conn.commit()
+    except:
+        cursor.close()
+        conn.close()
+        return error_response(500, "internal error", "Error al eliminar partido")
+
+    cursor.close()
+    conn.close()
+
+    return '', 204
+
 # PUT /partidos/id
 @app.route('/partidos/<int:id>', methods=['PUT'])
 def actualizar_partido(id):
@@ -406,7 +453,6 @@ def actualizar_resultado(id):
     return '', 204
 
 # POST/partidos/id/prediccion
-
 @app.route('/partidos/<int:id>/prediccion', methods=['POST'])
 def crear_prediccion(id):
     data = request.json
@@ -469,7 +515,6 @@ def crear_prediccion(id):
     return jsonify({"ok": True}), 201
 
 # GET/ranking
-
 @app.route('/ranking', methods=['GET'])
 def obtener_ranking():
     limit = int(request.args.get('_limit', 10))
