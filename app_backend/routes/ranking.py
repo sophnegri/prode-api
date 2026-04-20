@@ -6,7 +6,7 @@ ranking_bp = Blueprint("ranking", __name__)
 
 
 # GET /ranking
-@ranking_bp.route("/", methods=["GET"])
+@ranking_bp.route("/ranking", methods=["GET"])
 def obtener_ranking():
     limit = int(request.args.get("_limit", 10))
     offset = int(request.args.get("_offset", 0))
